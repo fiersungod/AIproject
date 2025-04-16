@@ -13,6 +13,7 @@ import class_udpData
 #     return X, y
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # Define the AutoEncoder model
 class AutoEncoder(nn.Module):
@@ -36,16 +37,24 @@ class AutoEncoder(nn.Module):
         return x
 
 # Load dataset
-csv_path = r"D:\Code\project\20250331134719.csv"
+csv_path = r"D:\Code\project\20250416180836.csv"
 X = class_udpData.csv_to_tensor(csv_path)
 X_train, X_test = train_test_split(X, test_size=0.2, random_state=42)
 X_train = torch.tensor(X_train, dtype=torch.float32).to(device)
 X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
 
 # Initialize model, loss function, and optimizer
+
 model = AutoEncoder(input_size=X.shape[1]).to(device)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.002)
+
+try:
+    model.load_state_dict(torch.load('project/autoencoder_model.pth', map_location=device))
+except FileNotFoundError:
+    print("Model not found. Starting training from scratch.")
+
+#model.eval()
 
 def train_model(epochs=1000):
     for epoch in range(epochs):
@@ -67,3 +76,5 @@ with torch.no_grad():
     X_test_reconstructed = model(X_test)
     reconstruction_loss = criterion(X_test_reconstructed, X_test)
     print(f'Test Reconstruction Loss: {reconstruction_loss.item():.4f}')
+    torch.save(model.state_dict(), 'project/autoencoder_model.pth')
+    print("Model saved as autoencoder_model.pth")
