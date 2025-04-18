@@ -37,26 +37,30 @@ class AutoEncoder(nn.Module):
         return x
 
 # Load dataset
-csv_path = r"D:\Code\project\20250416180836.csv"
+csv_path = r"D:\Code\project\20250331134719.csv"
 X = class_udpData.csv_to_tensor(csv_path)
 X_train, X_test = train_test_split(X, test_size=0.2, random_state=42)
 X_train = torch.tensor(X_train, dtype=torch.float32).to(device)
 X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
 
 # Initialize model, loss function, and optimizer
-
 model = AutoEncoder(input_size=X.shape[1]).to(device)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.002)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100000, gamma=0.1)
 
+# 加載模型和優化器的狀態（如果存在）
+checkpoint_path = 'project/autoencoder_model.pth'
 try:
-    model.load_state_dict(torch.load('project/autoencoder_model.pth', map_location=device))
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    print("Checkpoint loaded. Starting new training session.")
 except FileNotFoundError:
-    print("Model not found. Starting training from scratch.")
+    print("Checkpoint not found. Starting training from scratch.")
 
-#model.eval()
-
-def train_model(epochs=1000):
+# 定義訓練函式
+def train_model(epochs=1000000):
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
@@ -64,17 +68,35 @@ def train_model(epochs=1000):
         loss = criterion(outputs, X_train)
         loss.backward()
         optimizer.step()
-    print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
+        scheduler.step()
 
-# Training loop
-epochs = 1000
-for epoch in range(epochs):
-    train_model()
+        # 每 1000 次輸出一次 loss 值
+        if (epoch + 1) % 1000 == 0:
+            print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
+        
+        # 每隔一定的 epoch 保存模型
+        if (epoch + 1) % 100000 == 0:  # 每 1000 個 epoch 保存一次
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': loss.item()
+            }, checkpoint_path)
+            print(f"Checkpoint saved at epoch {epoch+1}.")
 
-# Evaluate model
+# 訓練模型
+epochs = 1000000
+train_model(epochs=epochs)
+
+# 評估模型
 with torch.no_grad():
     X_test_reconstructed = model(X_test)
     reconstruction_loss = criterion(X_test_reconstructed, X_test)
     print(f'Test Reconstruction Loss: {reconstruction_loss.item():.4f}')
-    torch.save(model.state_dict(), 'project/autoencoder_model.pth')
-    print("Model saved as autoencoder_model.pth")
+    torch.save({
+        'epoch': epochs - 1,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': reconstruction_loss.item()
+    }, checkpoint_path)
+    print("Final model saved.")
