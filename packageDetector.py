@@ -41,7 +41,8 @@ with torch.no_grad():
     loss = scored["Loss_mae"]
 
 # 輸出結果
-data['Anomaly'] = anomalies.numpy()
-data['Loss_mae'] = loss
-data.to_csv("output_with_anomalies.csv", index=False)
-print("偵測完成，結果已儲存至 output_with_anomalies.csv")
+data_df = pd.DataFrame(data.cpu().numpy(), columns=[f"Feature_{i}" for i in range(data.shape[1])])
+data_df['Anomaly'] = anomalies.to_numpy()
+data_df['Loss_mae'] = loss
+for i in data_df:
+    print(i, data_df[i])
