@@ -71,7 +71,7 @@ if __name__ == "__main__":
     print(f"Using device: {device}")
 
     # Load dataset
-    csv_path = r"project\20250419235916.csv"
+    csv_path = r"project\20250502142951.csv"
     X = class_udpData.csv_to_tensor(csv_path)
     X_train, X_test = train_test_split(X, test_size=0.2, random_state=42)
     scaler = StandardScaler()
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100000, gamma=0.1)
 
     # 加載模型和優化器的狀態（如果存在）
-    checkpoint_path = r'project\save_model\autoencoder_model_v1.pth'
+    checkpoint_path = r''
     try:
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -95,8 +95,9 @@ if __name__ == "__main__":
         print("Checkpoint loaded. Starting new training session.")
     except FileNotFoundError:
         print("Checkpoint not found. Starting training from scratch.")
+        checkpoint_path = r'project\autoencoder_model.pth'
 
-    epochs = 0
+    epochs = 1000000
     train_model(epochs=epochs)
 
     # 評估模型

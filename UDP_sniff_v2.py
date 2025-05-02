@@ -6,7 +6,7 @@ from scapy.all import *
 recordPath = r'D:\Code\project'
 
 #Time length that program will sniff
-timeOut = 120
+timeOut = 1800
 
 #Network interface will program sniff.
 #If program can't sniff any data, try get_if_list() and modify iFace like down below:

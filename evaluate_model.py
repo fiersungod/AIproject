@@ -23,7 +23,7 @@ X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(device)
 model = autoencoder.AutoEncoder(input_size=X_tensor.shape[1]).to(device)
 
 # 加載模型權重
-checkpoint_path = r'project\save_model\autoencoder_model_v1.pth'
+checkpoint_path = r'project\save_model\autoencoder_model_broken.pth'
 try:
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
