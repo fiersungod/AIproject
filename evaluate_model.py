@@ -13,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # 加載數據
-csv_path = r"project\20250419235916.csv"
+csv_path = r"project\20250502150415.csv"
 X = class_udpData.csv_to_tensor(csv_path)
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
@@ -23,7 +23,7 @@ X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(device)
 model = autoencoder.AutoEncoder(input_size=X_tensor.shape[1]).to(device)
 
 # 加載模型權重
-checkpoint_path = r'project\save_model\autoencoder_model_broken.pth'
+checkpoint_path = r'project\save_model\autoencoder_model_notgood.pth'
 try:
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
