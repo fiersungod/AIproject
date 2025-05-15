@@ -18,16 +18,7 @@ class udpData:
         self.destination_Port = int(s[4])
         self.package_length = int(s[5])
 
-    def to_list(self):
-        result = [int(self.time * 1000000)]
-        result += [int(i) for i in self.source_IP.split(".")]
-        result += [int(i) for i in self.destination_IP.split(".")]
-        result.append(self.source_Port)
-        result.append(self.destination_Port)
-        result.append(self.package_length)
-        return result
-    
-    def to_list(self,last_time):
+    def to_list(self,last_time=0):
         result = [int((self.time - last_time) * 1000000)]
         result += [int(i) for i in self.source_IP.split(".")]
         result += [int(i) for i in self.destination_IP.split(".")]
@@ -60,11 +51,11 @@ def csv_to_tensor(csv_path,package_size = 5,step = 2):
     return torch.tensor(result)
 
 if __name__ == "__main__":
-    path = r"D:\Code\project\20250331134719.csv"
+    path = r"C:\Users\austi\OneDrive\Desktop\AIproject\20250417140400-39.csv"
     print("Testing csv_to_tensor...")
     print("Print tensor data if test is success.")
     try:
-        T = csv_to_tensor(path,5,2)
+        T = csv_to_tensor(path,1,1)
         print(f"Generated {len(T)} datas.")
         print(T)
     except FileNotFoundError:
