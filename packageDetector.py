@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # 讀取數據
-data_path = r"project\20250417140400-39.csv"
+data_path = r"project\DrDoS2019_UDP_projectForm.csv"
 data = class_udpData.csv_to_tensor(data_path)
 
 # 假設數據需要標準化處理
@@ -20,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 data_tensor = torch.tensor(data_scaled, dtype=torch.float32).to(device)
 
 # 載入模型
-model_path = r"project\save_model\autoencoder_model_broken.pth"
+model_path = r"project\save_model\autoencoder_model_v2_32_16.pth"
 model = autoencoder.AutoEncoder(input_size=data_tensor.shape[1]).to(device)  # 將模型移動到設備
 checkpoint = torch.load(model_path, map_location=device)
 model.load_state_dict(checkpoint['model_state_dict'])
@@ -38,7 +38,7 @@ with torch.no_grad():
     scored["Loss_mae"] = np.mean(np.abs(X_pred - X_np), axis=1)
 
     # 設定 MAE 閾值
-    threshold = 1.5
+    threshold = 25
     anomalies = scored["Loss_mae"] > threshold
     loss = scored["Loss_mae"]
 
@@ -49,9 +49,9 @@ data_df['Loss_mae'] = loss  # 將損失值添加到 DataFrame
 
 for i in range(len(data_df['Anomaly'])):
     if data_df['Anomaly'][i]:
-        print(data_df["Anomaly"][i], data_df["Loss_mae"][i]) #data_df['Loss_mae'][i])
+        print(i, data_df["Anomaly"][i], data_df["Loss_mae"][i]) #data_df['Loss_mae'][i])
 
 plt.figure()
-sns.histplot(loss, bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
+sns.histplot(loss, bins=500, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
 plt.xlim(0.0, 5.0)  # 設置 x 軸範圍
 plt.show()
