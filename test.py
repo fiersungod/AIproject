@@ -5,6 +5,7 @@ import seaborn as sns
 import class_gatData as g
 import torch
 import GAT_VAE as gv
+import random
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -29,19 +30,22 @@ test_paths = [r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230558-40.csv"
               r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230740-40.csv"]
 
 
-test_paths = [r'C:\Users\austi\OneDrive\Desktop\專題-test\CDC_.csv']
+#test_paths = [r'C:\Users\austi\OneDrive\Desktop\專題-test\CDC_.csv']
 
 test_paths = [r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230817-40.csv"]
 
+test_paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\20250502160612-39.csv"]
+
 udp_datas = []
 for i in test_paths:
-    udp_datas += g.load_csv_data(i,200)
+    udp_datas += g.load_csv_data(i,50)
 pyg_data = []
 for i in udp_datas:
     pyg_data.append(g.build_graph_from_packets(i).to(device))
 model.eval()
 with torch.no_grad():
     total_loss = []
+    #random.shuffle(pyg_data)
     for data in pyg_data:
         recon_x, mu, logvar,gat_out = model(data.x, data.edge_index,data.edge_attr)
         """

@@ -117,28 +117,26 @@ class GAT_VAE(nn.Module):
 
 # ---- 訓練流程 ----
 def train(model, data, optimizer, epoch=100):
-   #pocket = [i for i in range(len(data))]
-   #random.shuffle(pocket)
-   #bin = []
-   #datas = {i : v for i, v in enumerate(data)}
-   #model.train()
-   #for e in range(epoch):
-   #    if (pocket == []):
-   #        pocket = bin
-   #        bin = []
-   #        random.shuffle(pocket)
-   #    num = pocket.pop()
-   #    bin.append(num)
-   for i in data:
-        for e in range(epoch):
-            optimizer.zero_grad()
-            #recon_x, mu, logvar,gat_out = model(datas[num].x, datas[num].edge_index,datas[num].edge_attr)
-            recon_x, mu, logvar,gat_out = model(i.x, i.edge_index,i.edge_attr)
-            loss = vae_loss(recon_x, gat_out, mu, logvar)
-            loss.backward()
-            optimizer.step()
-            if e % 10 == 0:
-                print(f"Epoch {e}/{epoch}, Loss: {loss.item()}")
+   pocket = [i for i in range(len(data))]
+   random.shuffle(pocket)
+   bin = []
+   datas = {i : v for i, v in enumerate(data)}
+   model.train()
+   for e in range(epoch):
+        if (pocket == []):
+            pocket = bin
+            bin = []
+            random.shuffle(pocket)
+        num = pocket.pop()
+        bin.append(num)
+        optimizer.zero_grad()
+        recon_x, mu, logvar,gat_out = model(datas[num].x, datas[num].edge_index,datas[num].edge_attr)
+        #recon_x, mu, logvar,gat_out = model(i.x, i.edge_index,i.edge_attr)
+        loss = vae_loss(recon_x, gat_out, mu, logvar)
+        loss.backward()
+        optimizer.step()
+        if e % 10 == 0:
+            print(f"Epoch {e}/{epoch}, Loss: {loss.item()}")
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -151,31 +149,31 @@ if __name__ == '__main__':
     
     udp_datas = []
     for i in paths:
-        udp_datas += g.load_csv_data(i,200)
+        udp_datas += g.load_csv_data(i,50)
     pyg_data = []
     for i in udp_datas:
-        pyg_data.append(g.build_graph_from_packets(i).to(device))
+        pyg_data.append(g.build_graph_from_packets(i,time_threshold=1).to(device))
     print(pyg_data)
 
     model = GAT_VAE(in_channels= 12, gat_hidden=32, gat_out=64, z_dim=16).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # 開始訓練
-    #epochs = 50*len(pyg_data)
-    epochs = 50
+    epochs = 50*len(pyg_data)
+    #epochs = 50
     train(model, pyg_data, optimizer,epoch=epochs)
 
     # 測試、保存模型
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    test_paths = [r"C:\Users\austi\OneDrive\Desktop\AIproject\20250417140400-39.csv"]
+    test_paths = [r"C:\Users\austi\OneDrive\Desktop\AIproject\local_data_set\20250417140400-39.csv"]
 
     udp_datas = []
     for i in test_paths:
-        udp_datas += g.load_csv_data(i,200)
+        udp_datas += g.load_csv_data(i,50)
     pyg_data = []
     for i in udp_datas:
-        pyg_data.append(g.build_graph_from_packets(i).to(device))
+        pyg_data.append(g.build_graph_from_packets(i,time_threshold=1).to(device))
     model.eval()
     with torch.no_grad():
         total_loss = []
