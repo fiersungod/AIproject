@@ -73,7 +73,8 @@ class GATLayer(torch.nn.Module):
         # 可训练权重：线性投影矩阵（在论文中表示为"W"）、注意力目标/源（在论文中表示为"a"）和偏差（在论文中未提到，但在官方GAT存储库中存在）
         #
 
-        # 可以将这个矩阵视为 num_of_heads 个独立的 W 矩阵
+        # 可以将这个矩阵视为 num_of_heads 个独立的 W 矩阵，此投影矩陣方便一次性計算所有heads的投影
+        # shape = (FIN, NH*FOUT)，其中 FIN 是输入特征数，NH 是注意力头的数量，FOUT 是输出特征数
         self.linear_proj = nn.Linear(num_in_features, num_of_heads * num_out_features, bias=False)
 
         # 在我们连接目标节点（节点 i）和源节点（节点 j）之后，我们应用“加法”评分函数

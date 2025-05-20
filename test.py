@@ -13,7 +13,7 @@ print(f"Using device: {device}")
 model = gv.GAT_VAE(in_channels= 12, gat_hidden=32, gat_out=64, z_dim=16).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-checkpoint_path = r'C:\Users\austi\OneDrive\Desktop\AIP_test2\gat_vae_model.pth'
+checkpoint_path = r'project\save_model\gat_vae_model.pth'
 try:
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -21,20 +21,20 @@ try:
     print("Checkpoint loaded.")
 except FileNotFoundError:
     print("Checkpoint not found. Starting training from scratch.")
-    checkpoint_path = r'C:\Users\austi\OneDrive\Desktop\AIP_test2\gat_vae_model.pth'
+    checkpoint_path = r'project\gat_vae_model.pth'
 
 
-test_paths = [r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230558-40.csv",
-              r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230632-40.csv",
-              r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230706-40.csv",
-              r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230740-40.csv"]
+test_paths = [r"project\local_data_set\20250515230558-40.csv",
+              r"project\local_data_set\20250515230632-40.csv",
+              r"project\local_data_set\20250515230706-40.csv",
+              r"project\local_data_set\20250515230740-40.csv"]
 
 
 #test_paths = [r'C:\Users\austi\OneDrive\Desktop\專題-test\CDC_.csv']
 
-test_paths = [r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230817-40.csv"]
+#test_paths = [r"project\local_data_set\20250515230817-40.csv"]
 
-test_paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\20250502160612-39.csv"]
+#test_paths = [r"project\local_data_set\20250502160612-39.csv"]
 
 udp_datas = []
 for i in test_paths:
@@ -57,8 +57,10 @@ with torch.no_grad():
         print("===")
         print(gat_out)
         """
-        loss = gv.vae_loss(recon_x, gat_out, mu, logvar)
-        print("total loss:",loss)
+        BCEloss, KLloss = gv.vae_loss(recon_x, gat_out, mu, logvar)
+        loss = BCEloss + KLloss
+        #loss = gv.vae_loss(recon_x, gat_out, mu, logvar)
+        print("BCELoss:", BCEloss, "KLloss:", KLloss, "total loss:",loss)
         total_loss.append(loss.item())
     total_loss = pd.DataFrame(total_loss)
     scored = pd.DataFrame()
