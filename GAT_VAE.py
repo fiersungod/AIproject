@@ -147,6 +147,8 @@ if __name__ == '__main__':
              r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230706-40.csv",
              r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230740-40.csv"]
     
+    paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_projectForm.csv"]
+
     udp_datas = []
     for i in paths:
         udp_datas += g.load_csv_data(i,50)
