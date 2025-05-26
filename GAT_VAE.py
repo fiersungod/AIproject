@@ -13,11 +13,14 @@ import class_gatData as g
 
 # ---- GAT 模型（圖神經網絡） ----
 class GATModel(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_heads=2):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_heads=2):# 更改頭數(2、4、8、16)調整為最佳狀態
         super(GATModel, self).__init__()
         # 1st GAT layer
         self.gat1 = GATConv(in_channels, hidden_channels, heads=num_heads)
         # 2nd GAT layer
+        # 單頭注意力，將前一層所有頭的輸出拼接起來
+        # 方便後續處理
+        # hidden_channels * num_heads = out_channels
         self.gat2 = GATConv(hidden_channels * num_heads, out_channels, heads=1)
 
     def forward(self, x, edge_index,edge_attr):
@@ -32,6 +35,7 @@ class VAE(nn.Module):
         self.z_dim = z_dim
         
         # Encoder (Latent space parameters: mu and logvar)
+        # 擴增特徵維度，方便學習更多重點特徵
         self.fc1 = nn.Linear(64, 128)  # Input size from GAT (64 features)
         self.fc_mu = nn.Linear(128, z_dim)
         self.fc_logvar = nn.Linear(128, z_dim)
@@ -99,7 +103,7 @@ def vae_loss(recon_x, x, mu, logvar):
     # Reconstruction term + KL divergence term
     # sum across the batch for each data point
     # Add these two terms and return the final loss
-    return BCE + -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return BCE, -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
 # ---- 整體模型整合（GAT + VAE） ----
 class GAT_VAE(nn.Module):
@@ -132,11 +136,13 @@ def train(model, data, optimizer, epoch=100):
         optimizer.zero_grad()
         recon_x, mu, logvar,gat_out = model(datas[num].x, datas[num].edge_index,datas[num].edge_attr)
         #recon_x, mu, logvar,gat_out = model(i.x, i.edge_index,i.edge_attr)
-        loss = vae_loss(recon_x, gat_out, mu, logvar)
+        BCEloss, KLloss = vae_loss(recon_x, gat_out, mu, logvar)
+        loss = BCEloss + KLloss
+        #loss = F.mse_loss(recon_x, i.x, reduction='sum') + KL
         loss.backward()
         optimizer.step()
         if e % 10 == 0:
-            print(f"Epoch {e}/{epoch}, Loss: {loss.item()}")
+            print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
