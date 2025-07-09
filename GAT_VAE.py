@@ -135,13 +135,16 @@ def train(model, data, optimizer, epoch=100):
         bin.append(num)
         optimizer.zero_grad()
         recon_x, mu, logvar,gat_out = model(datas[num].x, datas[num].edge_index,datas[num].edge_attr)
-        #recon_x, mu, logvar,gat_out = model(i.x, i.edge_index,i.edge_attr)
         BCEloss, KLloss = vae_loss(recon_x, gat_out, mu, logvar)
         loss = BCEloss + KLloss
-        #loss = F.mse_loss(recon_x, i.x, reduction='sum') + KL
         loss.backward()
         optimizer.step()
-        if e % 10 == 0:
+        #Early Stopping
+        if loss <= 2000:
+            print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
+            break
+
+        if e % 100 == 0:
             print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
 
 if __name__ == '__main__':
@@ -153,6 +156,8 @@ if __name__ == '__main__':
              r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230706-40.csv",
              r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230740-40.csv"]
     
+    #paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_projectForm.csv"]
+
     udp_datas = []
     for i in paths:
         udp_datas += g.load_csv_data(i,50)
@@ -170,9 +175,17 @@ if __name__ == '__main__':
     train(model, pyg_data, optimizer,epoch=epochs)
 
     # 測試、保存模型
+    checkpoint_path = r"C:\Users\austi\OneDrive\Desktop\AIP_test2\gat_vae_model.pth"
+    torch.save({
+        'epoch': epochs - 1,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict()
+    }, checkpoint_path)
+    print("Final model saved.")
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    test_paths = [r"C:\Users\austi\OneDrive\Desktop\AIproject\local_data_set\20250417140400-39.csv"]
+    test_paths = [r"local_data_set\20250417140400-39.csv"]
 
     udp_datas = []
     for i in test_paths:
@@ -185,16 +198,8 @@ if __name__ == '__main__':
         total_loss = []
         for data in pyg_data:
             recon_x, mu, logvar,gat_out = model(data.x, data.edge_index,data.edge_attr)
-            """
-            print(recon_x)
-            print("===")
-            print(mu)
-            print("===")
-            print(logvar,)
-            print("===")
-            print(gat_out)
-            """
-            loss = vae_loss(recon_x, gat_out, mu, logvar)
+            BCEloss, KLloss = vae_loss(recon_x, gat_out, mu, logvar)
+            loss = BCEloss + KLloss
             print("total loss:",loss)
             total_loss.append(loss.item())
         total_loss = pd.DataFrame(total_loss)
@@ -204,11 +209,3 @@ if __name__ == '__main__':
         plt.figure()
         sns.histplot(scored["total_loss"], bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
         plt.show()
-
-        checkpoint_path = r"C:\Users\austi\OneDrive\Desktop\AIP_test2\gat_vae_model.pth"
-        torch.save({
-            'epoch': epochs - 1,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()
-        }, checkpoint_path)
-        print("Final model saved.")

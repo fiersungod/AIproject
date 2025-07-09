@@ -9,7 +9,8 @@ def build_graph_from_packets(packets: list[u.udpData],time_threshold=1,device='c
     time_threshold: float (in seconds)
     """
     #x
-    x = [p.to_list() for p in packets]
+    start = packets[0].time
+    x = [p.to_list(start) for p in packets]
 
     #edge
     N = len(packets)
