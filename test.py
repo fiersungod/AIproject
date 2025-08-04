@@ -32,7 +32,7 @@ test_paths = [r"local_data_set\20250515230558-40.csv",
               r"local_data_set\20250515230740-40.csv"]
 
 
-test_paths = [r'C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_1_attack_projectForm.csv']
+test_paths = [r'C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_attack_projectForm.csv']
 
 #test_paths = [r"local_data_set\20250515230817-40.csv"]
 
@@ -40,7 +40,7 @@ test_paths = [r'C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_1_attack_p
 
 udp_datas = []
 for i in test_paths:
-    udp_datas += g.load_csv_data(i,50)
+    udp_datas += g.load_csv_data(i,15)
 answers = []
 pyg_data = []
 for i in udp_datas:
@@ -56,9 +56,7 @@ with torch.no_grad():
     predicts = []
     total_loss = []
     nor,att = 0,0
-    tp,fp,tn,fn=0,0,0,0
-    threshold = 2000
-    #random.shuffle(pyg_data)
+    threshold = 81000
     for i in range(len(pyg_data)):
         recon_x, mu, logvar,gat_out = model(pyg_data[i].x, pyg_data[i].edge_index,pyg_data[i].edge_attr)
         BCEloss, KLloss = gv.vae_loss(recon_x, gat_out, mu, logvar)
@@ -66,6 +64,7 @@ with torch.no_grad():
         #loss = gv.vae_loss(recon_x, gat_out, mu, logvar)
         #print("BCELoss:", BCEloss, "KLloss:", KLloss, "total loss:",loss)
         total_loss.append(loss.item())
+        #print(loss.item())
         if loss.item() > threshold:
             predicts.append(1)
         elif loss.item() <= threshold:
