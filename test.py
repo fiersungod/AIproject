@@ -56,7 +56,7 @@ with torch.no_grad():
     predicts = []
     total_loss = []
     nor,att = 0,0
-    threshold = 81000
+    threshold = 5
     for i in range(len(pyg_data)):
         recon_x, mu, logvar,gat_out = model(pyg_data[i].x, pyg_data[i].edge_index,pyg_data[i].edge_attr)
         BCEloss, KLloss = gv.vae_loss(recon_x, gat_out, mu, logvar)
