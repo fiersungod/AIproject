@@ -168,15 +168,15 @@ if __name__ == '__main__':
     
     paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_projectForm.csv"]
 
-    udp_datas = []
+    package_data = []
     for i in paths:
-        udp_datas += g.load_csv_data(i,15)
+        package_data += g.load_csv_data(i,15)
     pyg_data = []
-    for i in udp_datas:
+    for i in package_data:
         pyg_data.append(g.build_graph_from_packets(i,time_threshold=1).to(device))
     print(pyg_data)
 
-    model = GAT_VAE(in_channels= 12, gat_hidden=32, gat_out=64, z_dim=16).to(device)
+    model = GAT_VAE(in_channels= 15, gat_hidden=32, gat_out=64, z_dim=16).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
     # 開始訓練
@@ -197,11 +197,11 @@ if __name__ == '__main__':
     print(f"Using device: {device}")
     test_paths = [r"local_data_set\20250515230817-40.csv"]
 
-    udp_datas = []
+    package_data = []
     for i in test_paths:
-        udp_datas += g.load_csv_data(i,15)
+        package_data += g.load_csv_data(i,15)
     pyg_data = []
-    for i in udp_datas:
+    for i in package_data:
         pyg_data.append(g.build_graph_from_packets(i,time_threshold=0.5).to(device))
     model.eval()
     with torch.no_grad():
