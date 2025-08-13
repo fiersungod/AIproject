@@ -4,7 +4,6 @@ from scapy.all import UDP,TCP, IP, sniff, get_if_list
 #-----------Settings----------------
 #csv file will store at this path
 recordPath = r'D:\Code\project'
-recordPath = r'C:\Users\austi\OneDrive\Desktop\專題-test'
 #Time length that program will sniff
 timeOut = 10
 
