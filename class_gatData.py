@@ -1,16 +1,23 @@
 import class_udpData as u
+import class_tcpData as t
 import torch
 from torch_geometric.data import Data
 
 def build_graph_from_packets(packets: list[u.udpData],time_threshold=1,device='cpu'):
     """
-    packet_features: (N, 12) tensor
+    packet_features: (N, 15) tensor
     timestamps: (N,) tensor
     time_threshold: float (in seconds)
     """
     #x
     start = packets[0].time
-    x = [p.to_list(start) for p in packets]
+    x =[]
+    for p in packets:
+        if type(p) == u.udpData:
+            x.append([0] + p.to_list(start) + [-1,-1]) #0 for UDP
+        elif type(p) == t.tcpData:
+            x.append([1] + p.to_list(start)) #1 for TCP
+    #x = [p.to_list(start) for p in packets]
 
     #edge
     N = len(packets)
@@ -55,7 +62,10 @@ def load_csv_data(csv_path,size=200):
         data,temp = [],[]
         counter = 0
         for i in f:
-            temp.append(u.udpData(i))
+            if (len(i.split(',')) <= 7):
+                temp.append(u.udpData(i))
+            else:
+                temp.append(t.tcpData(i))
             counter += 1
             if counter == size:
                 data.append(temp)

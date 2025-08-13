@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import class_gatData as g
 
+
 # ---- GAT 模型（圖神經網絡） ----
 class GATModel(nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_heads=2):# 更改頭數(2、4、8、16)調整為最佳狀態
@@ -123,11 +124,15 @@ class GAT_VAE(nn.Module):
 def train(model, data, optimizer, epoch=100):
    pocket = [i for i in range(len(data))]
    random.shuffle(pocket)
-   bin = []
-   datas = {i : v for i, v in enumerate(data)}
+   bin = [] 
+   datas = {i : v for i, v in enumerate(data)} 
+   stack = [] # 用於早停的堆疊
+   stopFlag = False
    model.train()
    for e in range(epoch):
         if (pocket == []):
+            if stopFlag:
+                break
             pocket = bin
             bin = []
             random.shuffle(pocket)
@@ -140,10 +145,15 @@ def train(model, data, optimizer, epoch=100):
         loss.backward()
         optimizer.step()
         #Early Stopping
-        if loss <= 2000:
-            print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
-            break
-
+        if loss <= 5 and not stopFlag:
+            stack.append(e)
+            if len(stack) >= 10:
+                arr = [stack[i] - stack[i - 1] for i in range(1, len(stack))]
+                if all(x == 1 for x in arr):
+                    stopFlag = True
+                    print(f"Early stopping at epoch {e} with loss {loss.item()}")
+                else:
+                    stack.pop(0)
         if e % 100 == 0:
             print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
 
@@ -151,26 +161,26 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    paths = [r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230558-40.csv",
-             r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230632-40.csv",
-             r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230706-40.csv",
-             r"C:\Users\austi\OneDrive\Desktop\AIP_test2\20250515230740-40.csv"]
+    paths = [r"local_data_set\20250515230558-40.csv",
+             r"local_data_set\20250515230632-40.csv",
+             r"local_data_set\20250515230706-40.csv",
+             r"local_data_set\20250515230740-40.csv"]
     
-    #paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_projectForm.csv"]
+    paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_projectForm.csv"]
 
-    udp_datas = []
+    package_data = []
     for i in paths:
-        udp_datas += g.load_csv_data(i,50)
+        package_data += g.load_csv_data(i,15)
     pyg_data = []
-    for i in udp_datas:
+    for i in package_data:
         pyg_data.append(g.build_graph_from_packets(i,time_threshold=1).to(device))
     print(pyg_data)
 
-    model = GAT_VAE(in_channels= 12, gat_hidden=32, gat_out=64, z_dim=16).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model = GAT_VAE(in_channels= 15, gat_hidden=32, gat_out=64, z_dim=16).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
     # 開始訓練
-    epochs = 50*len(pyg_data)
+    epochs = 15*len(pyg_data)
     #epochs = 50
     train(model, pyg_data, optimizer,epoch=epochs)
 
@@ -185,14 +195,14 @@ if __name__ == '__main__':
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    test_paths = [r"local_data_set\20250417140400-39.csv"]
+    test_paths = [r"local_data_set\20250515230817-40.csv"]
 
-    udp_datas = []
+    package_data = []
     for i in test_paths:
-        udp_datas += g.load_csv_data(i,50)
+        package_data += g.load_csv_data(i,15)
     pyg_data = []
-    for i in udp_datas:
-        pyg_data.append(g.build_graph_from_packets(i,time_threshold=1).to(device))
+    for i in package_data:
+        pyg_data.append(g.build_graph_from_packets(i,time_threshold=0.5).to(device))
     model.eval()
     with torch.no_grad():
         total_loss = []

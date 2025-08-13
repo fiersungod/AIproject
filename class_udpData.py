@@ -13,12 +13,12 @@ class udpData:
         else: self.answer = 0
 
     def to_list(self,last_time=0):
-        result = [int((self.time - last_time) * 1000000)]
-        result += [int(i) for i in self.source_IP.split(".")]
-        result += [int(i) for i in self.destination_IP.split(".")]
-        result.append(self.source_Port)
-        result.append(self.destination_Port)
-        result.append(self.package_length)
+        result = [(self.time - last_time) * 1000]
+        result += [int(i)/100 for i in self.source_IP.split(".")]
+        result += [int(i)/100 for i in self.destination_IP.split(".")]
+        result.append(self.source_Port/10000)
+        result.append(self.destination_Port/10000)
+        result.append(self.package_length/1000)
         return result
     
 def csv_to_tensor(csv_path,package_size = 5,step = 2):
