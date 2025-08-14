@@ -1,14 +1,6 @@
 import torch
 #單一個UDP封包資料
 class udpData:
-    def __init__(self):
-        self.time = 0
-        self.source_IP = ""
-        self.destination_IP = ""
-        self.source_Port = 0
-        self.destination_Port = 0
-        self.package_length = 0
-
     def __init__(self,s:str):
         s = s.split(",")
         self.time = float(s[0])
@@ -17,14 +9,16 @@ class udpData:
         self.source_Port = int(s[3])
         self.destination_Port = int(s[4])
         self.package_length = int(s[5])
+        if len(s) >= 7: self.answer = int(s[6])
+        else: self.answer = 0
 
     def to_list(self,last_time=0):
-        result = [int((self.time - last_time) * 1000000)]
-        result += [int(i) for i in self.source_IP.split(".")]
-        result += [int(i) for i in self.destination_IP.split(".")]
-        result.append(self.source_Port)
-        result.append(self.destination_Port)
-        result.append(self.package_length)
+        result = [(self.time - last_time) * 1000]
+        result += [int(i)/100 for i in self.source_IP.split(".")]
+        result += [int(i)/100 for i in self.destination_IP.split(".")]
+        result.append(self.source_Port/10000)
+        result.append(self.destination_Port/10000)
+        result.append(self.package_length/1000)
         return result
     
 def csv_to_tensor(csv_path,package_size = 5,step = 2):
