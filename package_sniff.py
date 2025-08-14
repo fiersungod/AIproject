@@ -5,7 +5,7 @@ from scapy.all import UDP,TCP, IP, sniff, get_if_list
 #csv file will store at this path
 recordPath = r'D:\Code\project'
 #Time length that program will sniff
-timeOut = 10
+timeOut = 1800
 
 #Network interface will program sniff.
 #If program can't sniff any data, try get_if_list() and modify iFace like down below:

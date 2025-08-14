@@ -26,14 +26,14 @@ subtitle_label = tk.Label(root, text="請選擇資料型態後選擇功能", bg=
 subtitle_label.pack(side="top", pady=5)
 
 train_btn = tk.Button(root, text="訓練", bg="#414141", fg="#a3a3a3", font=("Inter", 18), width=22, height=10, command=train)
-train_btn.pack(side="left", anchor="nw", padx=40, pady=20)
+train_btn.pack(side="left", anchor="nw", padx=40, fill='none')
 
 detect_btn = tk.Button(root, text="偵測", bg="#414141", fg="#a3a3a3", font=("Inter", 18), width=22, height=10, command=detect)
-detect_btn.pack(side="right", anchor="ne", padx=40, pady=20)
+detect_btn.pack(side="right", anchor="ne", padx=40, fill='none')
 
 # 創建Frame
 file_frame = tk.Frame(root, bg="#111111")
-file_frame.pack(side="bottom")
+file_frame.pack(side="bottom", fill='x')
 
 # Radio選項
 data_type = tk.StringVar(value="option1")
