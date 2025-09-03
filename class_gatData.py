@@ -1,23 +1,11 @@
-import class_udpData as u
-import class_tcpData as t
+import class_flowData as flowData
 import torch
 from torch_geometric.data import Data
 
-def build_graph_from_packets(packets: list[u.udpData],time_threshold=1,device='cpu'):
-    """
-    packet_features: (N, 15) tensor
-    timestamps: (N,) tensor
-    time_threshold: float (in seconds)
-    """
+def build_graph_from_flow(packets: list[flowData.flowData],time_threshold=1,device='cpu'):
     #x
-    start = packets[0].time
-    x =[]
-    for p in packets:
-        if type(p) == u.udpData:
-            x.append([0] + p.to_list(start) + [-1,-1]) #0 for UDP
-        elif type(p) == t.tcpData:
-            x.append([1] + p.to_list(start)) #1 for TCP
-    #x = [p.to_list(start) for p in packets]
+    start = packets[0].timestamp
+    x = [p.to_list(start) for p in packets]
 
     #edge
     N = len(packets)
@@ -25,8 +13,8 @@ def build_graph_from_packets(packets: list[u.udpData],time_threshold=1,device='c
     edge_attr = []
     for i in range(N):
         for j in range(i+1, N):
-            time_diff = abs(packets[j].time - packets[i].time)
-            if time_diff <= time_threshold:
+            time_diff = abs(packets[j].timestamp - packets[i].timestamp)
+            if time_diff < time_threshold:
                 # 建立雙向邊 (i -> j) and (j -> i)
                 edge_index.append([i, j])
                 edge_index.append([j, i])
@@ -47,7 +35,11 @@ def build_graph_from_packets(packets: list[u.udpData],time_threshold=1,device='c
                 edge_attr.append(attr)
             else:
                 break
-
+    if edge_index == []:
+        print("Constructing graph : No edges found, consider increasing the time threshold.")
+        for i in range(N):
+            edge_index.append([i, i])
+            edge_attr.append([1, 0])
     # 轉換為 tensor 格式
     x = torch.tensor(x, dtype=torch.float)
     edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()  # shape: (2, E)
@@ -57,26 +49,23 @@ def build_graph_from_packets(packets: list[u.udpData],time_threshold=1,device='c
     data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr).to(device)
     return data
 
-def load_csv_data(csv_path,size=200):
+def load_csv_data(csv_path,size=10,max_size=1000000):
     with open(csv_path) as f:
+        next(f)
         data,temp = [],[]
         counter = 0
-        for i in f:
-            if (len(i.split(',')) <= 7):
-                temp.append(u.udpData(i))
-            else:
-                temp.append(t.tcpData(i))
+        for line in f:
+            temp.append(flowData.flowData(line))
             counter += 1
             if counter == size:
                 data.append(temp)
                 temp = []
                 counter = 0
-        #if temp != []:
-        #    data.append(temp)
     return data
 
 if __name__ == "__main__":
-    path = r"C:\Users\austi\OneDrive\Desktop\AIproject\20250417140400-39.csv"
-    udp_data = load_csv_data(path)
-    pyg_data = build_graph_from_packets(udp_data,time_threshold=0.3)
+    path = "local_data_set//flow_20250830211141.csv"
+    flow_data = load_csv_data(path)
+    for i in flow_data:
+        pyg_data = build_graph_from_flow(i,time_threshold=1)
     print("success!")

@@ -7,44 +7,35 @@ import torch
 from sklearn.metrics import classification_report
 import GAT_VAE as gv
 import random
+from NB15_to_flow import get_flow_data
+from class_gatData import build_graph_from_flow
+from GAT_VAE import initial_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model = gv.GAT_VAE(in_channels= 12, gat_hidden=32, gat_out=64, z_dim=16).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+model,optimizer = initial_model(device=device)
 
-checkpoint_path = r'save_model\gat_vae_model.pth'
-checkpoint_path = r"C:\Users\austi\OneDrive\Desktop\AIP_test2\gat_vae_model.pth"
+checkpoint_path = r"C:\Users\austi\OneDrive\Desktop\project - flow_base_test\gat_vae_model.pth"
 try:
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     print("Checkpoint loaded.")
 except FileNotFoundError:
-    print("Checkpoint not found. Starting training from scratch.")
-    checkpoint_path = r'project\gat_vae_model.pth'
+    print("Checkpoint not found. Please check checkpoint_path.")
+    raise FileNotFoundError
 
+test_paths = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2.csv"
 
-test_paths = [r"local_data_set\20250515230558-40.csv",
-              r"local_data_set\20250515230632-40.csv",
-              r"local_data_set\20250515230706-40.csv",
-              r"local_data_set\20250515230740-40.csv"]
-
-
-test_paths = [r'C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_attack_projectForm.csv']
-
-#test_paths = [r"local_data_set\20250515230817-40.csv"]
-
-#test_paths = [r"local_data_set\20250502160612-39.csv"]
-
-udp_datas = []
-for i in test_paths:
-    udp_datas += g.load_csv_data(i,15)
+#use nb15 for now
+flow_data = get_flow_data(training=False,file_path=test_paths)
+flow_data = [flow_data[i:i+15] for i in range(0, len(flow_data), 15)]
 answers = []
 pyg_data = []
-for i in udp_datas:
-    pyg_data.append(g.build_graph_from_packets(i).to(device))
+
+for i in flow_data:
+    pyg_data.append(build_graph_from_flow(i,time_threshold=1).to(device))
     ans = 0
     for j in i:
         if j.answer == 1:
@@ -56,7 +47,7 @@ with torch.no_grad():
     predicts = []
     total_loss = []
     nor,att = 0,0
-    threshold = 5
+    threshold = 2.5
     for i in range(len(pyg_data)):
         recon_x, mu, logvar,gat_out = model(pyg_data[i].x, pyg_data[i].edge_index,pyg_data[i].edge_attr)
         BCEloss, KLloss = gv.vae_loss(recon_x, gat_out, mu, logvar)
@@ -64,12 +55,12 @@ with torch.no_grad():
         #loss = gv.vae_loss(recon_x, gat_out, mu, logvar)
         #print("BCELoss:", BCEloss, "KLloss:", KLloss, "total loss:",loss)
         total_loss.append(loss.item())
-        #print(loss.item())
+        print(loss.item(),end=",")
         if loss.item() > threshold:
             predicts.append(1)
         elif loss.item() <= threshold:
             predicts.append(0)
-
+    print("")
     print(classification_report(answers, predicts))
 
     total_loss = pd.DataFrame(total_loss)

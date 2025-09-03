@@ -10,11 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import class_gatData as g
+from NB15_to_flow import get_flow_data
+from class_gatData import build_graph_from_flow
 
 
 # ---- GAT 模型（圖神經網絡） ----
 class GATModel(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_heads=2):# 更改頭數(2、4、8、16)調整為最佳狀態
+    def __init__(self, in_channels, hidden_channels, out_channels, num_heads=8):# 更改頭數(2、4、8、16)調整為最佳狀態
         super(GATModel, self).__init__()
         # 1st GAT layer
         self.gat1 = GATConv(in_channels, hidden_channels, heads=num_heads)
@@ -37,13 +39,13 @@ class VAE(nn.Module):
         
         # Encoder (Latent space parameters: mu and logvar)
         # 擴增特徵維度，方便學習更多重點特徵
-        self.fc1 = nn.Linear(64, 128)  # Input size from GAT (64 features)
-        self.fc_mu = nn.Linear(128, z_dim)
-        self.fc_logvar = nn.Linear(128, z_dim)
+        self.fc1 = nn.Linear(42, 64)  # Input size from GAT (64 features)
+        self.fc_mu = nn.Linear(64, z_dim)
+        self.fc_logvar = nn.Linear(64, z_dim)
 
         # Decoder
-        self.fc3 = nn.Linear(z_dim, 128)
-        self.fc4 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(z_dim, 64)
+        self.fc4 = nn.Linear(64, 42)
 
     def encode(self, x):
         h = F.relu(self.fc1(x))  # Encoding layer
@@ -145,7 +147,7 @@ def train(model, data, optimizer, epoch=100):
         loss.backward()
         optimizer.step()
         #Early Stopping
-        if loss <= 5 and not stopFlag:
+        if loss <= 10 and not stopFlag:
             stack.append(e)
             if len(stack) >= 10:
                 arr = [stack[i] - stack[i - 1] for i in range(1, len(stack))]
@@ -157,6 +159,11 @@ def train(model, data, optimizer, epoch=100):
         if e % 100 == 0:
             print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
 
+def initial_model(device):
+    model = GAT_VAE(in_channels= 21, gat_hidden=32, gat_out=42, z_dim=16).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
+    return model,optimizer
+
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -166,26 +173,27 @@ if __name__ == '__main__':
              r"local_data_set\20250515230706-40.csv",
              r"local_data_set\20250515230740-40.csv"]
     
-    paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2_projectForm.csv"]
+    paths = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_1.csv"
 
-    package_data = []
-    for i in paths:
-        package_data += g.load_csv_data(i,15)
+    #package_data = []
+    #for i in paths:
+    #    package_data += g.load_csv_data(i,size=15,max_size=5000000//15)
     pyg_data = []
+    #use nb15 for now
+    package_data = get_flow_data(training=True,file_path=paths)
+    package_data = [package_data[i:i+15] for i in range(0, len(package_data), 15)]
     for i in package_data:
-        pyg_data.append(g.build_graph_from_packets(i,time_threshold=1).to(device))
-    print(pyg_data)
+        pyg_data.append(build_graph_from_flow(i,time_threshold=1).to(device))
+    #print(pyg_data)
 
-    model = GAT_VAE(in_channels= 15, gat_hidden=32, gat_out=64, z_dim=16).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+    model,optimizer = initial_model(device=device)
 
     # 開始訓練
     epochs = 15*len(pyg_data)
-    #epochs = 50
     train(model, pyg_data, optimizer,epoch=epochs)
 
     # 測試、保存模型
-    checkpoint_path = r"C:\Users\austi\OneDrive\Desktop\AIP_test2\gat_vae_model.pth"
+    checkpoint_path = "save_model\\gat_vae_model.pth"
     torch.save({
         'epoch': epochs - 1,
         'model_state_dict': model.state_dict(),
@@ -193,13 +201,15 @@ if __name__ == '__main__':
     }, checkpoint_path)
     print("Final model saved.")
 
+r"""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     test_paths = [r"local_data_set\20250515230817-40.csv"]
+    test_paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\20250816165515.csv"]
 
     package_data = []
     for i in test_paths:
-        package_data += g.load_csv_data(i,15)
+        package_data += g.load_csv_data(i,size=15,max_size=10000000//15)
     pyg_data = []
     for i in package_data:
         pyg_data.append(g.build_graph_from_packets(i,time_threshold=0.5).to(device))
@@ -219,3 +229,4 @@ if __name__ == '__main__':
         plt.figure()
         sns.histplot(scored["total_loss"], bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
         plt.show()
+"""
