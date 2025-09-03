@@ -20,5 +20,5 @@ class tcpData:
         result.append(self.destination_Port/10000)
         result.append(self.package_length/1000)
         result.append(self.flag_count)
-        result.append(self.sequence_number/100000000)
+        result.append(self.sequence_number/10000000000)
         return result
