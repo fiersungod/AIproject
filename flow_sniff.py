@@ -118,18 +118,28 @@ def flow_timeout_checker():
             del flows[key]
         time.sleep(3)
 
-def main():
-    timeout_thread = threading.Thread(target=flow_timeout_checker, daemon=True)
-    timeout_thread.start()
-    print("開始擷取封包...")
-    sniff(iface=get_if_list(),filter="udp or tcp",prn=process_packet, store=0, timeout=RECORD_TIME)
-    stop_event.set()
-    timeout_thread.join()
+def drop_flows(num):
+    if num > len(completed_flows):
+        return None
+    data = completed_flows[:num]
+    completed_flows[:] = completed_flows[num:]
+    return data
+
+def save_flows_to_csv(completed_flows):
     df = pd.DataFrame(completed_flows)
     recordPath = 'local_data_set'
     recordPath += datetime.datetime.now().strftime("\\flow_%Y%m%d%H%M%S.csv")
     df.to_csv(recordPath, index=False)
     print(f"已儲存至{recordPath}")
 
+def sniff_flow(record_time=RECORD_TIME):
+    timeout_thread = threading.Thread(target=flow_timeout_checker, daemon=True)
+    timeout_thread.start()
+    print("開始擷取封包...")
+    sniff(iface=get_if_list(),filter="udp or tcp",prn=process_packet, store=0, timeout=record_time)
+    stop_event.set()
+    timeout_thread.join()
+    
 if __name__ == "__main__":
-    main()
+    sniff_flow()
+    save_flows_to_csv(completed_flows)

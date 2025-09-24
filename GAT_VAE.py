@@ -13,8 +13,6 @@ import class_gatData as g
 from NB15_to_flow import get_flow_data
 from class_gatData import build_graph_from_flow
 from sklearn.metrics import classification_report
-from sklearn.metrics import roc_curve
-
 
 # ---- GAT 模型（圖神經網絡） ----
 class GATModel(nn.Module):
@@ -173,28 +171,36 @@ def initial_model(device):
 WINDOW_SIZE = 5
 TIME_THRESHOLD = 60
 LOSS_THRESHOLD = 1.0
-if __name__ == '__main__':
+def trainModel(paths=None,mocel=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    paths = [r"local_data_set\20250515230558-40.csv",
-             r"local_data_set\20250515230632-40.csv",
-             r"local_data_set\20250515230706-40.csv",
-             r"local_data_set\20250515230740-40.csv"]
-    
-    paths = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_1.csv"
+    if paths is None or paths == "" or paths == []:
+        raise FileNotFoundError("GAT_VAE: trainModel : File_path is invaild.")
 
-    #package_data = []
-    #for i in paths:
-    #    package_data += g.load_csv_data(i,size=15,max_size=5000000//15)
+    flow_data = []
     pyg_data = []
-    #use nb15 for now
-    package_data = get_flow_data(training=True,file_path=paths)
-    package_data = [package_data[i:i+WINDOW_SIZE] for i in range(0, len(package_data), WINDOW_SIZE)]
-    for i in package_data:
+    for file_path in paths:
+        if "NB15" in file_path:
+            data = get_flow_data(training=True,file_path=paths)
+            flow_data += data
+        else:
+            data = g.load_csv_data(file_path)
+            flow_data += data
+    flow_data = [flow_data[i:i+WINDOW_SIZE] for i in range(0, len(flow_data), WINDOW_SIZE)]
+    for i in flow_data:
         pyg_data.append(build_graph_from_flow(i,time_threshold=TIME_THRESHOLD).to(device))
 
     model,optimizer = initial_model(device=device)
+    if model is not None:
+        try:
+            checkpoint = torch.load(checkpoint_path, map_location=device)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            print("Checkpoint loaded.")
+        except FileNotFoundError:
+            print("GAT_VAE: Checkpoint not found. Please check checkpoint_path.")
+            raise FileNotFoundError
 
     # 開始訓練
     epochs = 5*len(pyg_data)
@@ -251,3 +257,6 @@ if __name__ == '__main__':
             plt.figure()
             sns.histplot(scored["total_loss"], bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
             plt.show()
+
+if __name__ == "__main__":
+    trainModel()
