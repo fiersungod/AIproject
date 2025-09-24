@@ -12,6 +12,8 @@ import seaborn as sns
 import class_gatData as g
 from NB15_to_flow import get_flow_data
 from class_gatData import build_graph_from_flow
+from sklearn.metrics import classification_report
+from sklearn.metrics import roc_curve
 
 
 # ---- GAT 模型（圖神經網絡） ----
@@ -21,8 +23,6 @@ class GATModel(nn.Module):
         # 1st GAT layer
         self.gat1 = GATConv(in_channels, hidden_channels, heads=num_heads)
         # 2nd GAT layer
-        # 單頭注意力，將前一層所有頭的輸出拼接起來
-        # 方便後續處理
         # hidden_channels * num_heads = out_channels
         self.gat2 = GATConv(hidden_channels * num_heads, out_channels, heads=1)
 
@@ -39,16 +39,19 @@ class VAE(nn.Module):
         
         # Encoder (Latent space parameters: mu and logvar)
         # 擴增特徵維度，方便學習更多重點特徵
-        self.fc1 = nn.Linear(42, 64)  # Input size from GAT (64 features)
-        self.fc_mu = nn.Linear(64, z_dim)
-        self.fc_logvar = nn.Linear(64, z_dim)
+        self.fce1 = nn.Linear(11, 64)
+        self.fce2 = nn.Linear(64, 32)
+        self.fc_mu = nn.Linear(32, z_dim)
+        self.fc_logvar = nn.Linear(32, z_dim)
 
         # Decoder
-        self.fc3 = nn.Linear(z_dim, 64)
-        self.fc4 = nn.Linear(64, 42)
+        self.fcd3 = nn.Linear(z_dim, 32)
+        self.fcd2 = nn.Linear(32, 64)  
+        self.fcd1 = nn.Linear(64, 11)
 
     def encode(self, x):
-        h = F.relu(self.fc1(x))  # Encoding layer
+        h = F.relu(self.fce1(x))  # Encoding layer
+        h = F.relu(self.fce2(h)) 
         mu = self.fc_mu(h)  # Mean of latent space
         logvar = self.fc_logvar(h)  # Log variance of latent space
         return mu, logvar
@@ -60,8 +63,9 @@ class VAE(nn.Module):
         return mu + eps * std
 
     def decode(self, z):
-        h = F.relu(self.fc3(z))  # Decoder layer
-        return self.fc4(h)
+        h = F.relu(self.fcd3(z))  # Decoder layer
+        h = F.relu(self.fcd2(h))
+        return self.fcd1(h)
 
     def forward(self, x):
         mu, logvar = self.encode(x)
@@ -123,18 +127,18 @@ class GAT_VAE(nn.Module):
         return recon_x, mu, logvar,gat_out
 
 # ---- 訓練流程 ----
-def train(model, data, optimizer, epoch=100):
+def train(model, data, optimizer, epoch=100,early_stopping_thereshold=1):
    pocket = [i for i in range(len(data))]
    random.shuffle(pocket)
-   bin = [] 
+   bin = []  #暫存訓練中已使用過的資料
    datas = {i : v for i, v in enumerate(data)} 
-   stack = [] # 用於早停的堆疊
+   stack = [] # 用於early stopping的堆疊
    stopFlag = False
    model.train()
    for e in range(epoch):
         if (pocket == []):
-            if stopFlag:
-                break
+            #if stopFlag:
+                #break
             pocket = bin
             bin = []
             random.shuffle(pocket)
@@ -147,23 +151,28 @@ def train(model, data, optimizer, epoch=100):
         loss.backward()
         optimizer.step()
         #Early Stopping
-        if loss <= 10 and not stopFlag:
+        if loss <= early_stopping_thereshold and not stopFlag:
             stack.append(e)
-            if len(stack) >= 10:
+            if len(stack) >= 100:
                 arr = [stack[i] - stack[i - 1] for i in range(1, len(stack))]
                 if all(x == 1 for x in arr):
-                    stopFlag = True
+                    #stopFlag = True
                     print(f"Early stopping at epoch {e} with loss {loss.item()}")
+                    break
                 else:
                     stack.pop(0)
         if e % 100 == 0:
             print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
 
 def initial_model(device):
-    model = GAT_VAE(in_channels= 21, gat_hidden=32, gat_out=42, z_dim=16).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
+    model = GAT_VAE(in_channels= 11, gat_hidden=32, gat_out=11, z_dim=12).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=3e-6)
     return model,optimizer
 
+
+WINDOW_SIZE = 5
+TIME_THRESHOLD = 60
+LOSS_THRESHOLD = 1.0
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -181,16 +190,15 @@ if __name__ == '__main__':
     pyg_data = []
     #use nb15 for now
     package_data = get_flow_data(training=True,file_path=paths)
-    package_data = [package_data[i:i+15] for i in range(0, len(package_data), 15)]
+    package_data = [package_data[i:i+WINDOW_SIZE] for i in range(0, len(package_data), WINDOW_SIZE)]
     for i in package_data:
-        pyg_data.append(build_graph_from_flow(i,time_threshold=1).to(device))
-    #print(pyg_data)
+        pyg_data.append(build_graph_from_flow(i,time_threshold=TIME_THRESHOLD).to(device))
 
     model,optimizer = initial_model(device=device)
 
     # 開始訓練
-    epochs = 15*len(pyg_data)
-    train(model, pyg_data, optimizer,epoch=epochs)
+    epochs = 5*len(pyg_data)
+    train(model, pyg_data, optimizer,epoch=epochs,early_stopping_thereshold=LOSS_THRESHOLD)
 
     # 測試、保存模型
     checkpoint_path = "save_model\\gat_vae_model.pth"
@@ -201,32 +209,45 @@ if __name__ == '__main__':
     }, checkpoint_path)
     print("Final model saved.")
 
-r"""
+    # 測試模型
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-    test_paths = [r"local_data_set\20250515230817-40.csv"]
-    test_paths = [r"C:\Users\austi\OneDrive\Desktop\專題-test\20250816165515.csv"]
+    print("start testing")
+    test_path = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2.csv"
 
-    package_data = []
-    for i in test_paths:
-        package_data += g.load_csv_data(i,size=15,max_size=10000000//15)
-    pyg_data = []
-    for i in package_data:
-        pyg_data.append(g.build_graph_from_packets(i,time_threshold=0.5).to(device))
-    model.eval()
-    with torch.no_grad():
-        total_loss = []
-        for data in pyg_data:
-            recon_x, mu, logvar,gat_out = model(data.x, data.edge_index,data.edge_attr)
-            BCEloss, KLloss = vae_loss(recon_x, gat_out, mu, logvar)
-            loss = BCEloss + KLloss
-            print("total loss:",loss)
-            total_loss.append(loss.item())
-        total_loss = pd.DataFrame(total_loss)
-        scored = pd.DataFrame()
-        scored["total_loss"] = np.abs(total_loss)
+    try:
+        flow_data = get_flow_data(training=False,file_path=test_path)
+    except FileNotFoundError:
+        print("Didn't find test data, skip testing.")
+    else:
+        flow_data = [flow_data[i:i+WINDOW_SIZE] for i in range(0, len(flow_data), WINDOW_SIZE)]
+        pyg_data = []
+        answers = []
+        predicts = []
+        for i in flow_data:
+            if any(j.answer == 1 for j in i):
+                answers.append(1)
+            else:
+                answers.append(0)
+            pyg_data.append(g.build_graph_from_flow(i,time_threshold=TIME_THRESHOLD).to(device))
+        model.eval()
+        with torch.no_grad():
+            total_loss = []
+            for data in pyg_data:
+                recon_x, mu, logvar,gat_out = model(data.x, data.edge_index,data.edge_attr)
+                BCEloss, KLloss = vae_loss(recon_x, gat_out, mu, logvar)
+                loss = BCEloss + KLloss
+                total_loss.append(loss.item())
+                if loss.item() > LOSS_THRESHOLD:
+                    predicts.append(1)
+                else:
+                    predicts.append(0)
+            total_loss = pd.DataFrame(total_loss)
+            scored = pd.DataFrame()
+            scored["total_loss"] = np.abs(total_loss)
 
-        plt.figure()
-        sns.histplot(scored["total_loss"], bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
-        plt.show()
-"""
+            print(classification_report(answers, predicts))
+
+            # 繪製分佈圖
+            plt.figure()
+            sns.histplot(scored["total_loss"], bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
+            plt.show()
