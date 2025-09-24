@@ -1,26 +1,46 @@
 class flowData:
-    def __init__(self,s:str):
-        s = s.split(",")
-        self.timestamp = float(s[0])
-        self.source_IP = s[1]
-        self.destination_IP = s[2]
-        self.source_Port = int(s[3])
-        self.destination_Port = int(s[4])
-        self.protocol = int(s[5])
-        self.duration = float(s[6])
-        self.source_bytes = int(s[7])
-        self.destination_bytes = int(s[8])
-        self.source_efficiency = float(s[9])
-        self.destination_efficiency = float(s[10])
-        self.source_packets = int(s[11])
-        self.destination_packets = int(s[12])
-        self.source_seq = int(s[13])
-        self.destination_seq = int(s[14])
-        if len(s) >= 16: 
-            self.answer = int(s[15])
-            if len(s) >= 17: self.attack_category = s[16]
-            else: self.attack_category = ""
-        else:
+    def __init__(self,s):
+        if type(s) == str:
+            s = s.split(",")
+            self.timestamp = float(s[0])
+            self.source_IP = s[1]
+            self.destination_IP = s[2]
+            self.source_Port = int(s[3])
+            self.destination_Port = int(s[4])
+            self.protocol = int(s[5])
+            self.duration = float(s[6])
+            self.source_bytes = int(s[7])
+            self.destination_bytes = int(s[8])
+            self.source_efficiency = float(s[9])
+            self.destination_efficiency = float(s[10])
+            self.source_packets = int(s[11])
+            self.destination_packets = int(s[12])
+            self.source_seq = int(s[13])
+            self.destination_seq = int(s[14])
+            if len(s) >= 16: 
+                self.answer = int(s[15])
+                if len(s) >= 17: self.attack_category = s[16]
+                else: self.attack_category = ""
+            else:
+                self.answer = 0
+                self.attack_category = ""
+
+        elif type(s) == dict:
+            self.timestamp = float(s['timeStamp'])
+            self.source_IP = s['srcip']
+            self.destination_IP = s['dstip']
+            self.source_Port = int(s['srcport'])
+            self.destination_Port = int(s['dstport'])
+            self.protocol = int(s['protocol'])
+            self.duration = float(s['duration'])
+            self.source_bytes = int(s['srcbytes'])
+            self.destination_bytes = int(s['dstbytes'])
+            self.source_efficiency = float(s['srceff'])
+            self.destination_efficiency = float(s['dsteff'])
+            self.source_packets = int(s['srcpkts'])
+            self.destination_packets = int(s['dstpkts'])
+            self.source_seq = int(s['srcseq'])
+            self.destination_seq = int(s['dstseq'])
             self.answer = 0
             self.attack_category = ""
 

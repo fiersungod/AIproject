@@ -1,8 +1,8 @@
-import class_flowData as flowData
 import torch
 from torch_geometric.data import Data
+from class_flowData import flowData
 
-def build_graph_from_flow(packets: list[flowData.flowData],time_threshold=1,device='cpu'):
+def build_graph_from_flow(packets: list[flowData],time_threshold=1,device='cpu'):
     #x
     start = packets[0].timestamp
     x = [p.to_list(start) for p in packets]
@@ -48,18 +48,17 @@ def build_graph_from_flow(packets: list[flowData.flowData],time_threshold=1,devi
     data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr).to(device)
     return data
 
-def load_csv_data(csv_path,size=10,max_size=1000000):
+def load_csv_data(csv_path,max_size=1000000):
     with open(csv_path) as f:
         next(f)
-        data,temp = [],[]
+        data = []
         counter = 0
         for line in f:
-            temp.append(flowData.flowData(line))
+            data.append(flowData(line))
             counter += 1
-            if counter == size:
-                data.append(temp)
-                temp = []
-                counter = 0
+            if counter >= max_size:
+                break
+
     return data
 
 if __name__ == "__main__":
