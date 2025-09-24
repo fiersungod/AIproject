@@ -33,8 +33,7 @@ def build_graph_from_flow(packets: list[flowData.flowData],time_threshold=1,devi
 
                 edge_attr.append(attr)
                 edge_attr.append(attr)
-            else:
-                break
+
     if edge_index == []:
         print("Constructing graph : No edges found, consider increasing the time threshold.")
         for i in range(N):

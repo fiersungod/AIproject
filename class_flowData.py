@@ -26,10 +26,10 @@ class flowData:
 
     def to_list(self,last_time=0):
         result = [(self.timestamp - last_time) / 1000]
-        result += [int(i)/255 for i in self.source_IP.split(".")]
-        result += [int(i)/255 for i in self.destination_IP.split(".")]
-        result.append(self.source_Port/65535)
-        result.append(self.destination_Port/65535)
+        #result += [int(i)/255 for i in self.source_IP.split(".")]
+        #result += [int(i)/255 for i in self.destination_IP.split(".")]
+        #result.append(self.source_Port/65535)
+        #result.append(self.destination_Port/65535)
         result.append(self.protocol)
         result.append(self.duration)
         result.append(self.source_bytes/1e6)
