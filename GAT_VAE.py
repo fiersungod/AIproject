@@ -171,7 +171,7 @@ def initial_model(device):
 WINDOW_SIZE = 5
 TIME_THRESHOLD = 60
 LOSS_THRESHOLD = 1.0
-def trainModel(paths=None,mocel=None):
+def trainModel(paths=None,model_path=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -182,7 +182,7 @@ def trainModel(paths=None,mocel=None):
     pyg_data = []
     for file_path in paths:
         if "NB15" in file_path:
-            data = get_flow_data(training=True,file_path=paths)
+            data = get_flow_data(training=True,file_path=file_path)
             flow_data += data
         else:
             data = g.load_csv_data(file_path)
@@ -192,9 +192,9 @@ def trainModel(paths=None,mocel=None):
         pyg_data.append(build_graph_from_flow(i,time_threshold=TIME_THRESHOLD).to(device))
 
     model,optimizer = initial_model(device=device)
-    if model is not None:
+    if model_path is not None:
         try:
-            checkpoint = torch.load(checkpoint_path, map_location=device)
+            checkpoint = torch.load(model_path, map_location=device)
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             print("Checkpoint loaded.")

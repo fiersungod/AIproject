@@ -125,7 +125,7 @@ def drop_flows(num):
     completed_flows[:] = completed_flows[num:]
     return data
 
-def save_flows_to_csv(completed_flows):
+def save_flows_to_csv(completed_flows=completed_flows):
     df = pd.DataFrame(completed_flows)
     recordPath = 'local_data_set'
     recordPath += datetime.datetime.now().strftime("\\flow_%Y%m%d%H%M%S.csv")
