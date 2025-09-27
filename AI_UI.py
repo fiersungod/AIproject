@@ -1,5 +1,8 @@
 import tkinter as tk
 import os
+import threading
+import flow_sniff
+import GAT_VAE
 
 root = tk.Tk()
 
@@ -158,16 +161,51 @@ def load_files():
 # ------------------------
 # 下方按鈕
 # ------------------------
+
+def capture_data():
+    def sniff():
+        try:
+            flow_sniff.sniff_flow(int(input_var.get()))
+            flow_sniff.save_flows_to_csv()
+        finally:
+            capture.config(state="normal")  # 執行完再啟用按鈕
+
+    # 建立子執行緒
+    capture.config(state="disabled")  # 按下按鈕就禁用，避免多次按
+    threading.Thread(target=sniff).start()
+
 def start_training():
-    selected_files = [f for f, v in file_vars.items() if v.get()]
+    selected_files = [os.path.join(BASE_DIR, f) for f, v in file_vars.items() if v.get()]
     selected_model = model_var.get()
     print("選擇的訓練資料:", selected_files)
     print("選擇的模型:", selected_model)
+    def train_model():
+        try:
+            GAT_VAE.trainModel(selected_files, selected_model)
+        finally:
+            train.config(state="normal")  # 執行完再啟用按鈕
 
-tk.Button(train_frame, text="開始訓練", command=start_training,
-          bg="#414141", fg="#a3a3a3", font=("Inter", 14), width=20, height=2).pack(pady=20)
+    # 建立子執行緒
+    train.config(state="disabled")  # 按下按鈕就禁用，避免多次按
+    threading.Thread(target=train_model).start()
 
-tk.Button(train_frame, text="返回首頁", command=lambda: show_frame(main_frame)).pack(pady=10)
+capture_frame = tk.Frame(train_frame, bg="#111111")
+capture_frame.pack(side="left")
+
+input_var = tk.StringVar(value="3600")
+input_entry = tk.Entry(capture_frame, textvariable=input_var, width=20,
+                       bg="#222222", fg="white", font=("Inter", 12))
+input_entry.grid(row=0, column=0, padx=(50, 20))
+
+capture = tk.Button(capture_frame, text="新增封包資料", command=capture_data,
+          bg="#414141", fg="#a3a3a3", font=("Inter", 14), width=10, height=1)
+capture.grid(row=0, column=1)
+
+train = tk.Button(train_frame, text="開始訓練", command=start_training,
+          bg="#414141", fg="#a3a3a3", font=("Inter", 14), width=20, height=2)
+train.pack(pady=10)
+
+tk.Button(train_frame, text="返回首頁", command=lambda: show_frame(main_frame)).pack(pady=20)
 
 # ------------------------
 # 偵測頁面 (detect_frame)
