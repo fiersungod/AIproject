@@ -121,11 +121,11 @@ def flow_timeout_checker():
 def drop_flows(num):
     if num > len(completed_flows):
         return None
-    data = completed_flows[:num]
+    data = completed_flows[:num].copy()
     completed_flows[:] = completed_flows[num:]
     return data
 
-def save_flows_to_csv(completed_flows):
+def save_flows_to_csv(completed_flows=completed_flows):
     df = pd.DataFrame(completed_flows)
     recordPath = 'local_data_set'
     recordPath += datetime.datetime.now().strftime("\\flow_%Y%m%d%H%M%S.csv")
