@@ -170,7 +170,7 @@ def initial_model(device):
 
 WINDOW_SIZE = 5
 TIME_THRESHOLD = 60
-LOSS_THRESHOLD = 1.0
+LOSS_THRESHOLD = 5.0
 def trainModel(paths=None,model_path=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")

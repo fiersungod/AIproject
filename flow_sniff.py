@@ -121,7 +121,7 @@ def flow_timeout_checker():
 def drop_flows(num):
     if num > len(completed_flows):
         return None
-    data = completed_flows[:num]
+    data = completed_flows[:num].copy()
     completed_flows[:] = completed_flows[num:]
     return data
 

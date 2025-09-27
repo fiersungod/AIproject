@@ -43,6 +43,8 @@ class flowData:
             self.destination_seq = int(s['dstseq'])
             self.answer = 0
             self.attack_category = ""
+        else:
+            raise ValueError("Invalid input type for flowData")
 
     def to_list(self,last_time=0):
         result = [(self.timestamp - last_time) / 1000]

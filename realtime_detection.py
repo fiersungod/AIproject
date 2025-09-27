@@ -40,16 +40,17 @@ def realtime_detect(model_path):
             while len(flow_sniff.completed_flows) < window_size:
                 time.sleep(1)
             current_flow = flow_sniff.drop_flows(window_size)
-            if current_flow is None:
+            if current_flow is None or len(current_flow) < window_size:
                 time.sleep(1)
                 continue
-            current_flow = [flowData(i) for i in current_flow]
-            pyg_data = build_graph_from_flow(current_flow, time_threshold=time_threshold).to(device)
+            pyg_data = [flowData(i) for i in current_flow]
+            pyg_data = build_graph_from_flow(pyg_data, time_threshold=time_threshold).to(device)
             recon_x, mu, logvar, gat_out = model(pyg_data.x, pyg_data.edge_index, pyg_data.edge_attr)
             BCEloss, KLloss = GAT_VAE.vae_loss(recon_x, gat_out, mu, logvar)
             loss = BCEloss + KLloss
             if loss.item() < loss_threshold:
                 start_flag = False
+                print("Initial normal flow established.")
         
         # Start predicting
         while not stop_event.is_set():
@@ -60,8 +61,9 @@ def realtime_detect(model_path):
                 time.sleep(1)
                 continue
             test_flow = current_flow[1:]
-            test_flow.append(flowData(input_flow))
-            pyg_data = build_graph_from_flow(test_flow, time_threshold=time_threshold).to(device)
+            test_flow.append(input_flow[0])
+            pyg_data = [flowData(i) for i in test_flow]
+            pyg_data = build_graph_from_flow(pyg_data, time_threshold=time_threshold).to(device)
             recon_x, mu, logvar, gat_out = model(pyg_data.x, pyg_data.edge_index, pyg_data.edge_attr)
             BCEloss, KLloss = GAT_VAE.vae_loss(recon_x, gat_out, mu, logvar)
             loss = BCEloss + KLloss
