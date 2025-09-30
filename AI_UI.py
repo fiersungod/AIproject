@@ -3,6 +3,7 @@ import os
 import threading
 import flow_sniff
 import GAT_VAE
+import realtime_detection
 
 root = tk.Tk()
 
@@ -175,8 +176,8 @@ def capture_data():
     threading.Thread(target=sniff).start()
 
 def start_training():
-    selected_files = [os.path.join(BASE_DIR, f) for f, v in file_vars.items() if v.get()]
-    selected_model = model_var.get()
+    selected_files = [os.path.join(DATA_FOLDER, f) for f, v in file_vars.items() if v.get()]
+    selected_model = os.path.join(MODEL_FOLDER, model_var.get())
     print("選擇的訓練資料:", selected_files)
     print("選擇的模型:", selected_model)
     def train_model():
@@ -245,11 +246,21 @@ def real_time_detect():
     selected_model = detect_model_var.get()
     if selected_model:
         print("即時偵測，使用模型:", selected_model)
+        def real_time():
+            try:
+                realtime_detection.realtime_detect(os.path.join(MODEL_FOLDER, selected_model))
+            finally:
+                real_time_detect_btn.config(state="normal")  # 執行完再啟用按鈕
+
+        # 建立子執行緒
+        real_time_detect_btn.config(state="disabled")  # 按下按鈕就禁用，避免多次按
+        threading.Thread(target=real_time).start()
     else:
         print("請先選擇模型！")
 
-tk.Button(detect_frame, text="即時偵測", command=real_time_detect,
-          bg="#414141", fg="#a3a3a3", font=("Inter", 14), width=20, height=2).pack(pady=10)
+real_time_detect_btn = tk.Button(detect_frame, text="即時偵測", command=real_time_detect,
+          bg="#414141", fg="#a3a3a3", font=("Inter", 14), width=20, height=2)
+real_time_detect_btn.pack(pady=10)
 tk.Button(detect_frame, text="返回首頁", command=lambda: show_frame(main_frame)).pack(pady=10)
 
 # ------------------------
