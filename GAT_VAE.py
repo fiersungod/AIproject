@@ -31,21 +31,21 @@ class GATModel(nn.Module):
 
 # ---- VAE 模型（變分自編碼器） ----
 class VAE(nn.Module):
-    def __init__(self, z_dim=16):
+    def __init__(self, z_dim=16, input_dim=12):
         super(VAE, self).__init__()
         self.z_dim = z_dim
         
         # Encoder (Latent space parameters: mu and logvar)
         # 擴增特徵維度，方便學習更多重點特徵
-        self.fce1 = nn.Linear(11, 64)
-        self.fce2 = nn.Linear(64, 32)
-        self.fc_mu = nn.Linear(32, z_dim)
-        self.fc_logvar = nn.Linear(32, z_dim)
+        self.fce1 = nn.Linear(input_dim, 128)
+        self.fce2 = nn.Linear(128, 64)
+        self.fc_mu = nn.Linear(64, z_dim)
+        self.fc_logvar = nn.Linear(64, z_dim)
 
         # Decoder
-        self.fcd3 = nn.Linear(z_dim, 32)
-        self.fcd2 = nn.Linear(32, 64)  
-        self.fcd1 = nn.Linear(64, 11)
+        self.fcd3 = nn.Linear(z_dim, 64)
+        self.fcd2 = nn.Linear(64, 128)  
+        self.fcd1 = nn.Linear(128, input_dim)
 
     def encode(self, x):
         h = F.relu(self.fce1(x))  # Encoding layer
@@ -73,41 +73,7 @@ class VAE(nn.Module):
 # ---- VAE Loss Function (KL + MSE) ----
 def vae_loss(recon_x, x, mu, logvar):
     logvar = torch.clamp(logvar, min=-10, max=10)
-    BCE = F.mse_loss(recon_x, x, reduction='sum')  # Reconstruction loss (MSE)
-    # KL divergence loss
-    # Standard normal distribution: N(0, I)
-    # KL divergence (D_KL(q(z|x)||p(z)))
-    # This term encourages z to follow a normal distribution
-    # where mu=0 and logvar=0
-    # see https://arxiv.org/abs/1312.6114
-    # logvar is the log of the variance
-    # mu is the mean of the latent variable
-    # For simplicity, we assume the variance is 1
-    # Kullback-Leibler divergence term
-    # KL divergence between normal and learned latent variable distribution
-    # (this will make the latent distribution similar to a normal one)
-    # use the following formula:
-    # KL(q(z|x)||p(z)) = -0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    # This encourages the posterior distribution q(z|x) to be close to N(0, I)
-    # which is an isotropic Gaussian distribution.
-    # Note: `logvar` is the logarithm of the variance.
-    # Reference: Kingma & Welling (2013)
-    # https://arxiv.org/pdf/1312.6114.pdf
-    # https://stackoverflow.com/questions/42902906/understanding-kl-divergence-in-vae
-    # In PyTorch, `logvar` is the log of the variance.
-    # So we can use the following formula for KL divergence:
-    # KL(q(z|x)||p(z)) = -0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    # Reference:
-    # https://en.wikipedia.org/wiki/Variational_autoencoder#Loss_function
-    # The result will be summed over the batch
-    # Negative log likelihood:
-    # We try to minimize this function.
-    # It's similar to the conventional log likelihood, but with an additional KL term.
-    # L(x, z) = L_vae(x, z) + L_kl(x, z)
-    # Return this loss value
-    # Reconstruction term + KL divergence term
-    # sum across the batch for each data point
-    # Add these two terms and return the final loss
+    BCE = F.mse_loss(recon_x, x, reduction='sum')
     return BCE, -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
 # ---- 整體模型整合（GAT + VAE） ----
@@ -115,7 +81,7 @@ class GAT_VAE(nn.Module):
     def __init__(self, in_channels, gat_hidden, gat_out, z_dim=16):
         super(GAT_VAE, self).__init__()
         self.gat = GATModel(in_channels, gat_hidden, gat_out)
-        self.vae = VAE(z_dim)
+        self.vae = VAE(z_dim,input_dim=in_channels)
 
     def forward(self, x, edge_index,edge_attr):
         # GAT 層提取節點嵌入
@@ -163,14 +129,14 @@ def train(model, data, optimizer, epoch=100,early_stopping_thereshold=1):
             print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
 
 def initial_model(device):
-    model = GAT_VAE(in_channels= 11, gat_hidden=32, gat_out=11, z_dim=12).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=3e-6)
+    model = GAT_VAE(in_channels= 12, gat_hidden=32, gat_out=12, z_dim=16).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
     return model,optimizer
 
 
 WINDOW_SIZE = 5
-TIME_THRESHOLD = 60
-LOSS_THRESHOLD = 5.0
+TIME_THRESHOLD = 15
+LOSS_THRESHOLD = 40.0
 def trainModel(paths=None,model_path=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -259,4 +225,5 @@ def trainModel(paths=None,model_path=None):
             plt.show()
 
 if __name__ == "__main__":
-    trainModel()
+    traindata_path = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_1.csv"]
+    trainModel(paths=traindata_path,model_path=None)
