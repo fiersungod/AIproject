@@ -47,12 +47,12 @@ class flowData:
             raise ValueError("Invalid input type for flowData")
 
     def to_list(self,last_time=0):
-        result = [(self.timestamp - last_time) / 1000]
+        #result = [(self.timestamp - last_time) / 1000]
         #result += [int(i)/255 for i in self.source_IP.split(".")]
         #result += [int(i)/255 for i in self.destination_IP.split(".")]
         #result.append(self.source_Port/65535)
         #result.append(self.destination_Port/65535)
-        result.append(self.protocol)
+        result += ([1,0] if self.protocol == 1 else [0,1])
         result.append(self.duration)
         result.append(self.source_bytes/1e6)
         result.append(self.destination_bytes/1e6)

@@ -71,7 +71,7 @@ def realtime_detect(model_path):
                 print(f"Anomaly detected! Loss: {loss.item()}")
             else:
                 print(f"Normal flow. Loss: {loss.item()}")
-                current_flow = test_flow
+                current_flow = test_flow.copy()
 
     sniff_thread.join()
     print("Stopped realtime detection.")
