@@ -216,6 +216,26 @@ detect_frame.place(relwidth=1, relheight=1)
 
 tk.Label(detect_frame, text="偵測頁面", bg="#111111", fg="white", font=("Inter", 20, "bold")).pack(pady=10)
 
+# ========== 訊息紀錄 Listbox ==========
+log_listbox = tk.Listbox(detect_frame, width=80, height=10, bg="#1a1a1a", fg="white")
+log_listbox.pack(pady=10)
+
+def add_log(msg):
+    log_listbox.insert(tk.END, msg)
+    log_listbox.yview(tk.END)  # 自動捲到最後
+
+# 自訂 print 輸出到 Listbox
+import sys
+class ListboxRedirect:
+    def write(self, msg):
+        if msg.strip():  # 避免空行太多
+            add_log(msg)
+    def flush(self):
+        pass
+
+sys.stdout = ListboxRedirect()
+sys.stderr = ListboxRedirect()
+
 # 模型選擇 (單選)
 
 detect_model_var = tk.StringVar(value="")
@@ -258,9 +278,19 @@ def real_time_detect():
     else:
         print("請先選擇模型！")
 
+def stop_detect():
+    realtime_detection.stop_realtime_detection()
+    print("停止偵測")
+    real_time_detect_btn.config(state="normal")
+
 real_time_detect_btn = tk.Button(detect_frame, text="即時偵測", command=real_time_detect,
           bg="#414141", fg="#a3a3a3", font=("Inter", 14), width=20, height=2)
 real_time_detect_btn.pack(pady=10)
+
+stop_detect_btn = tk.Button(detect_frame, text="停止偵測", command=stop_detect,
+          bg="#414141", fg="#a3a3a3", font=("Inter", 14), width=20, height=2)
+stop_detect_btn.pack(pady=10)
+
 tk.Button(detect_frame, text="返回首頁", command=lambda: show_frame(main_frame)).pack(pady=10)
 
 # ------------------------
