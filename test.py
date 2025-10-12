@@ -70,9 +70,9 @@ def test(test_paths=None):
         print(classification_report(answers, predicts))
         total_loss = pd.DataFrame(total_loss)
         scored = pd.DataFrame()
-        scored["total_loss"] = np.abs(total_loss)
+        scored["total_loss"] = np.log10(np.abs(total_loss)+1e-10)
         plt.figure()
-        sns.histplot(scored["total_loss"], bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
+        sns.histplot(scored["total_loss"], bins=25, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
         plt.show()
 
         fpr, tpr, thresholds = roc_curve(answers, total_loss)
@@ -170,7 +170,7 @@ def test_windows(test_paths=None):
         plt.show()
 
 if __name__ == "__main__":
-    test_paths = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2.csv"
-    test_paths = r"C:\Users\austi\OneDrive\Desktop\專題-test\DrDoS_UDP.csv"
+    test_paths = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_1.csv"
+    #test_paths = r"C:\Users\austi\OneDrive\Desktop\專題-test\DrDoS_UDP.csv"
     test(test_paths=test_paths)
     #test_windows(test_paths=test_paths)
