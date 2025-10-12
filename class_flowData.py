@@ -1,3 +1,5 @@
+import math
+
 class flowData:
     def __init__(self,s):
         if type(s) == str:
@@ -47,13 +49,14 @@ class flowData:
             raise ValueError("Invalid input type for flowData")
 
     def to_list(self,last_time=0):
-        #result = [(self.timestamp - last_time) / 1000]
+        result = []
+        #result += [(self.timestamp - last_time) / 1000]
         #result += [int(i)/255 for i in self.source_IP.split(".")]
         #result += [int(i)/255 for i in self.destination_IP.split(".")]
         #result.append(self.source_Port/65535)
         #result.append(self.destination_Port/65535)
         result += ([1,0] if self.protocol == 1 else [0,1])
-        result.append(self.duration)
+        result.append(self.duration/60)
         result.append(self.source_bytes/1e6)
         result.append(self.destination_bytes/1e6)
         result.append(self.source_efficiency/1e6)
@@ -62,4 +65,8 @@ class flowData:
         result.append(self.destination_packets/100)
         result.append(self.source_seq/1e10)   
         result.append(self.destination_seq/1e10)
+        result.append(math.log10(self.source_efficiency + 1 / (self.destination_efficiency + 1))/10) # efficiency ratio
+        result.append(math.log10(self.source_packets + 1/ (self.destination_packets + 1))/10) # Packet ratio
+        result.append(1 if self.source_packets > 0 and self.destination_packets > 0 else 0) # Bi-directional flag
+        result.append(1 if self.duration < 1 else 0) # Short duration flag
         return result

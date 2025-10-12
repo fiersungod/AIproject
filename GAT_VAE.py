@@ -101,8 +101,6 @@ def train(model, data, optimizer, epoch=100,early_stopping_thereshold=1):
    model.train()
    for e in range(epoch):
         if (pocket == []):
-            #if stopFlag:
-                #break
             pocket = bin
             bin = []
             random.shuffle(pocket)
@@ -111,7 +109,7 @@ def train(model, data, optimizer, epoch=100,early_stopping_thereshold=1):
         optimizer.zero_grad()
         recon_x, mu, logvar,gat_out = model(datas[num].x, datas[num].edge_index,datas[num].edge_attr)
         BCEloss, KLloss = vae_loss(recon_x, gat_out, mu, logvar)
-        loss = BCEloss + KLloss
+        loss = BCEloss + 0.1 * KLloss
         loss.backward()
         optimizer.step()
         #Early Stopping
@@ -120,7 +118,6 @@ def train(model, data, optimizer, epoch=100,early_stopping_thereshold=1):
             if len(stack) >= 100:
                 arr = [stack[i] - stack[i - 1] for i in range(1, len(stack))]
                 if all(x == 1 for x in arr):
-                    #stopFlag = True
                     print(f"Early stopping at epoch {e} with loss {loss.item()}")
                     break
                 else:
@@ -129,15 +126,15 @@ def train(model, data, optimizer, epoch=100,early_stopping_thereshold=1):
             print(f"Epoch {e}/{epoch}, BCELoss: {BCEloss.item()}, KL: {KLloss.item()}, Loss: {loss.item()}")
 
 def initial_model(device):
-    model = GAT_VAE(in_channels= 12, gat_hidden=32, gat_out=12, z_dim=16).to(device)
+    model = GAT_VAE(in_channels= 15, gat_hidden=32, gat_out=15, z_dim=6).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
     return model,optimizer
 
 
-WINDOW_SIZE = 5
-TIME_THRESHOLD = 15
-LOSS_THRESHOLD = 40.0
-def trainModel(paths=None,model_path=None):
+WINDOW_SIZE = 6
+TIME_THRESHOLD = 90
+LOSS_THRESHOLD = 5
+def trainModel(paths=None,model_path=None,test_path=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -184,8 +181,9 @@ def trainModel(paths=None,model_path=None):
     # 測試模型
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("start testing")
-    test_path = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2.csv"
 
+    if test_path is None:
+        return
     try:
         flow_data = get_flow_data(training=False,file_path=test_path)
     except FileNotFoundError:
@@ -215,15 +213,27 @@ def trainModel(paths=None,model_path=None):
                     predicts.append(0)
             total_loss = pd.DataFrame(total_loss)
             scored = pd.DataFrame()
-            scored["total_loss"] = np.abs(total_loss)
+            scored["total_loss"] = np.log10(np.abs(total_loss)+1e-10)
 
             print(classification_report(answers, predicts))
 
             # 繪製分佈圖
             plt.figure()
-            sns.histplot(scored["total_loss"], bins=10, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
+            sns.histplot(scored["total_loss"], bins=25, kde=True, color='blue')  # 使用 seaborn 繪製分佈圖
             plt.show()
 
 if __name__ == "__main__":
     traindata_path = [r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_1.csv"]
-    trainModel(paths=traindata_path,model_path=None)
+    """
+    traindata_path = ["local_data_set//flow_20250830211141.csv",
+                      "local_data_set//flow_20250908132129.csv",
+                      "local_data_set//flow_20250908133629.csv",
+                      "local_data_set//flow_20250908151855.csv",
+                      "local_data_set//flow_20251005001409.csv",
+                      "local_data_set//flow_20251011161619.csv", 
+                      "local_data_set//flow_20251011163717.csv",]
+    """
+    test_path = r"C:\Users\austi\OneDrive\Desktop\專題-test\UNSW-NB15_2.csv"
+    trainModel(paths=traindata_path,model_path=None,test_path=test_path)
+    
+    

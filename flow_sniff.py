@@ -6,7 +6,7 @@ import datetime
 import threading
 
 FLOW_TIMEOUT = 15   # Flow timeout in seconds
-RECORD_TIME = 3660  # Total sniffing time in seconds
+RECORD_TIME = 7260  # Total sniffing time in seconds
 
 class flowKey:
     def __init__(self, srcip, dstip, srcport, dstport, protocol):
