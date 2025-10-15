@@ -60,17 +60,18 @@ def realtime_detect(model_path):
             if input_flow is None:
                 time.sleep(1)
                 continue
+            input_flow = input_flow[0]
             test_flow = current_flow[1:]
-            test_flow.append(input_flow[0])
+            test_flow.append(input_flow)
             pyg_data = [flowData(i) for i in test_flow]
             pyg_data = build_graph_from_flow(pyg_data, time_threshold=time_threshold).to(device)
             recon_x, mu, logvar, gat_out = model(pyg_data.x, pyg_data.edge_index, pyg_data.edge_attr)
             BCEloss, KLloss = GAT_VAE.vae_loss(recon_x, gat_out, mu, logvar)
             loss = BCEloss + KLloss
             if loss.item() > loss_threshold:
-                print(f"Anomaly detected! Loss: {loss.item()}")
+                print(f"Anomaly detected! {input_flow['srcip']} ({input_flow['srcport']}) -> {input_flow['dstip']} ({input_flow['dstport']}) , Loss: {loss.item()}")
             else:
-                print(f"Normal flow. Loss: {loss.item()}")
+                print(f"Normal flow. {input_flow['srcip']} ({input_flow['srcport']}) -> {input_flow['dstip']} ({input_flow['dstport']}) , Loss: {loss.item()}")
                 current_flow = test_flow.copy()
 
     sniff_thread.join()
